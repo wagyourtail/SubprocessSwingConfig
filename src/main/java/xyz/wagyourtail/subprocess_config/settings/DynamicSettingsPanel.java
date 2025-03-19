@@ -1,8 +1,4 @@
-package xyz.wagyourtail.byteedit.decompilers.ui.settings;
-
-import net.lenni0451.commons.swing.GBC;
-import org.slf4j.Logger;
-import xyz.wagyourtail.byteedit.util.Log;
+package xyz.wagyourtail.subprocess_config.settings;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -15,7 +11,7 @@ import java.util.function.BiFunction;
 
 public class DynamicSettingsPanel extends JPanel {
 
-    private static final Logger LOGGER = Log.get();
+    private static final System.Logger LOGGER = System.getLogger(DynamicSettingsPanel.class.getName());
 
     public static JFrame createSettingsFrame(final Component parent, final String name, final DynamicSettings config, final BiFunction<JFrame, DynamicSettingsPanel, JPanel> buttons) {
         JFrame frame = new JFrame("Settings");
@@ -24,15 +20,30 @@ public class DynamicSettingsPanel extends JPanel {
 
         DynamicSettingsPanel settingsPanel = new DynamicSettingsPanel(config);
         int gridy = 0;
-        GBC.create(frame).grid(0, gridy++).anchor(GBC.CENTER).add(new JLabel("Settings for " + name));
-        GBC.create(frame).grid(0, gridy++).weightx(1).fill(GBC.HORIZONTAL).add(new JSeparator());
-        GBC.create(frame).grid(0, gridy++).weight(1, 1).fill(GBC.BOTH).add(() -> {
-            JScrollPane scrollPane = new JScrollPane(settingsPanel);
-            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-            scrollPane.getHorizontalScrollBar().setUnitIncrement(16);
-            return scrollPane;
-        });
-        GBC.create(frame).grid(0, gridy).weightx(1).fill(GBC.HORIZONTAL).add(() -> buttons.apply(frame, settingsPanel));
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = 0;
+        constraints.gridy = gridy++;
+        constraints.anchor = GridBagConstraints.CENTER;
+        frame.add(new JLabel("Settings for " + name), constraints);
+
+        constraints.gridy = gridy++;
+        constraints.weightx = 1;
+        constraints.anchor = 0;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        frame.add(new JSeparator(), constraints);
+
+        constraints.gridy = gridy++;
+        constraints.weighty = 1;
+        constraints.fill = GridBagConstraints.BOTH;
+        JScrollPane scrollPane = new JScrollPane(settingsPanel);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.getHorizontalScrollBar().setUnitIncrement(16);
+        frame.add(scrollPane, constraints);
+
+        constraints.gridy = gridy++;
+        constraints.weighty = 0;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        frame.add(buttons.apply(frame, settingsPanel), constraints);
 
         frame.pack();
         frame.setSize(Math.min(500, frame.getWidth()), Math.min(500, frame.getHeight()));
@@ -56,7 +67,12 @@ public class DynamicSettingsPanel extends JPanel {
         for (DynamicSettings.Setting<?> setting : this.settings.getSettings()) {
             this.add(setting, gridy++);
         }
-        GBC.fillVerticalSpace(this);
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridy = gridy;
+        constraints.anchor = GridBagConstraints.WEST;
+        constraints.weighty = 1;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        this.add(new Box.Filler(new Dimension(0,0), new Dimension(0,0), new Dimension(0, Short.MAX_VALUE)), constraints);
     }
 
     public void save() {
@@ -79,7 +95,7 @@ public class DynamicSettingsPanel extends JPanel {
 //                this.add(new MapSettingPanel((DynamicSettings.MapSetting<?, ?>) setting));
 //                break;
             default -> {
-                LOGGER.warn("Unknown setting type: {}", setting.getClass().getSimpleName());
+                LOGGER.log(System.Logger.Level.WARNING, "Unknown setting type: {}", setting.getClass().getSimpleName());
                 yield null;
             }
         };
@@ -91,7 +107,12 @@ public class DynamicSettingsPanel extends JPanel {
 
         public SettingPanel(T setting, JPanel panel, int gridy) {
             this.setting = setting;
-            GBC.create(panel).grid(0, gridy).insets(5, 5, 0, 0).anchor(GBC.LINE_START).add(new JLabel(this.setting.getName()));
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.gridx = 0;
+            gbc.gridy = gridy;
+            gbc.insets = new Insets(5, 5, 0, 0);
+            gbc.anchor = GridBagConstraints.LINE_START;
+            panel.add(new JLabel(this.setting.getName()), gbc);
         }
 
         public abstract void save();
@@ -105,7 +126,13 @@ public class DynamicSettingsPanel extends JPanel {
             this.field = new JCheckBox();
             this.field.setSelected(this.setting.get());
             this.field.addActionListener(e -> this.setting.set(this.field.isSelected()));
-            GBC.create(panel).grid(1, gridy).insets(5, 5, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.field);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.gridx = 1;
+            gbc.gridy = gridy;
+            gbc.insets = new Insets(5, 5, 0, 5);
+            gbc.weightx = 1;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            panel.add(this.field, gbc);
         }
 
         @Override
@@ -121,7 +148,13 @@ public class DynamicSettingsPanel extends JPanel {
             super(setting, panel, gridy);
             this.field = new JTextField(this.setting.get().toString());
             this.field.getDocument().addDocumentListener(this);
-            GBC.create(panel).grid(1, gridy).insets(5, 5, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.field);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.gridx = 1;
+            gbc.gridy = gridy;
+            gbc.insets = new Insets(5, 5, 0, 5);
+            gbc.weightx = 1;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            panel.add(this.field, gbc);
         }
 
         @Override
@@ -143,12 +176,12 @@ public class DynamicSettingsPanel extends JPanel {
         private void update(DocumentEvent e) {
             try {
                 switch (this.setting.type.getSimpleName()) {
-                    case "int", "Integer" -> this.setting.set((T) Integer.valueOf(e.getDocument().getText(0, e.getDocument().getLength())));
-                    case "long", "Long" -> this.setting.set((T) Long.valueOf(e.getDocument().getText(0, e.getDocument().getLength())));
-                    case "float", "Float" -> this.setting.set((T) Float.valueOf(e.getDocument().getText(0, e.getDocument().getLength())));
-                    case "double", "Double" -> this.setting.set((T) Double.valueOf(e.getDocument().getText(0, e.getDocument().getLength())));
-                    case "byte", "Byte" -> this.setting.set((T) Byte.valueOf(e.getDocument().getText(0, e.getDocument().getLength())));
-                    case "short", "Short" -> this.setting.set((T) Short.valueOf(e.getDocument().getText(0, e.getDocument().getLength())));
+                    case "int", "Integer" -> Integer.valueOf(e.getDocument().getText(0, e.getDocument().getLength()));
+                    case "long", "Long" -> Long.valueOf(e.getDocument().getText(0, e.getDocument().getLength()));
+                    case "float", "Float" -> Float.valueOf(e.getDocument().getText(0, e.getDocument().getLength()));
+                    case "double", "Double" -> Double.valueOf(e.getDocument().getText(0, e.getDocument().getLength()));
+                    case "byte", "Byte" -> Byte.valueOf(e.getDocument().getText(0, e.getDocument().getLength()));
+                    case "short", "Short" -> Short.valueOf(e.getDocument().getText(0, e.getDocument().getLength()));
                     default -> {
                         this.field.setForeground(Color.RED);
                         return;
@@ -189,7 +222,13 @@ public class DynamicSettingsPanel extends JPanel {
         public BoundedIntSettingPanel(DynamicSettings.BoundedIntSetting setting, JPanel panel, int gridy) {
             super(setting, panel, gridy);
             this.field = new JSpinner(new SpinnerNumberModel((int) this.setting.get(), this.setting.getMin(), this.setting.getMax(), 1));
-            GBC.create(panel).grid(1, gridy).insets(5, 5, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.field);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.gridx = 1;
+            gbc.gridy = gridy;
+            gbc.insets = new Insets(5, 5, 0, 5);
+            gbc.weightx = 1;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            panel.add(this.field, gbc);
         }
 
         @Override
@@ -204,7 +243,13 @@ public class DynamicSettingsPanel extends JPanel {
         public BoundedDoubleSettingPanel(DynamicSettings.BoundedDoubleSetting setting, JPanel panel, int gridy) {
             super(setting, panel, gridy);
             this.field = new JSpinner(new SpinnerNumberModel((double) this.setting.get(), this.setting.getMin(), this.setting.getMax(), 0.1));
-            GBC.create(panel).grid(1, gridy).insets(5, 5, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.field);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.gridx = 1;
+            gbc.gridy = gridy;
+            gbc.insets = new Insets(5, 5, 0, 5);
+            gbc.weightx = 1;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            panel.add(this.field, gbc);
         }
 
         @Override
@@ -219,7 +264,13 @@ public class DynamicSettingsPanel extends JPanel {
         public StringSettingPanel(DynamicSettings.StringSetting setting, JPanel panel, int gridy) {
             super(setting, panel, gridy);
             this.field = new JTextField(this.setting.get());
-            GBC.create(panel).grid(1, gridy).insets(5, 5, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.field);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.gridx = 1;
+            gbc.gridy = gridy;
+            gbc.insets = new Insets(5, 5, 0, 5);
+            gbc.weightx = 1;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            panel.add(this.field, gbc);
         }
 
         @Override
@@ -235,7 +286,13 @@ public class DynamicSettingsPanel extends JPanel {
             super(setting, panel, gridy);
             this.field = new JTextField(String.valueOf(this.setting.get()));
             this.field.getDocument().addDocumentListener(this);
-            GBC.create(panel).grid(1, gridy).insets(5, 5, 0, 5).weightx(1).fill(GBC.HORIZONTAL).add(this.field);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.gridx = 1;
+            gbc.gridy = gridy;
+            gbc.insets = new Insets(5, 5, 0, 5);
+            gbc.weightx = 1;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            panel.add(this.field, gbc);
         }
 
         @Override

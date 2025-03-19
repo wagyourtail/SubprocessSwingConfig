@@ -1,20 +1,15 @@
-package xyz.wagyourtail.byteedit.decompilers.ui.settings;
+package xyz.wagyourtail.subprocess_config.settings;
 
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import com.strobel.core.Pair;
-import org.slf4j.Logger;
-import xyz.wagyourtail.byteedit.util.Log;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class DynamicSettings {
-
-    private static final Logger LOGGER = Log.get();
+    private static final System.Logger LOGGER = System.getLogger(DynamicSettings.class.getName());
 
     private final Map<String, Setting<?>> settings = new LinkedHashMap<>();
 
@@ -83,7 +78,7 @@ public abstract class DynamicSettings {
         return (MapSetting<T, U>) this.settings.get(name);
     }
 
-    public void serialize(@Nonnull JsonWriter writer) throws IOException {
+    public void serialize(JsonWriter writer) throws IOException {
         writer.beginObject();
         for (Map.Entry<String, Setting<?>> entry : this.settings.entrySet()) {
             writer.name(entry.getKey());
@@ -92,13 +87,13 @@ public abstract class DynamicSettings {
         writer.endObject();
     }
 
-    public void deserialize(@Nonnull JsonReader reader) throws IOException {
+    public void deserialize(JsonReader reader) throws IOException {
         reader.beginObject();
         while (reader.hasNext()) {
             String key = reader.nextName();
             Setting<?> setting = this.settings.get(key);
             if (setting == null) {
-                LOGGER.warn("Unknown setting: {}", key);
+                LOGGER.log(System.Logger.Level.WARNING, "Unknown setting: {}", key);
                 reader.skipValue();
                 continue;
             }
@@ -342,7 +337,7 @@ public abstract class DynamicSettings {
 
         @SuppressWarnings({"rawtypes", "unchecked"})
         public MapSetting(String name, Map<String, T> defaultValue, Function<T, U> settingConstructor) {
-            super(name, new HashMap<>(defaultValue.entrySet().stream().map(e -> new Pair<>(e.getKey(), settingConstructor.apply(e.getValue()))).collect(Collectors.toMap(Pair::getFirst, Pair::getSecond))), (Class) Map.class);
+            super(name, new HashMap<>(defaultValue.entrySet().stream().map(e -> Map.entry(e.getKey(), settingConstructor.apply(e.getValue()))).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))), (Class) Map.class);
             this.settingConstructor = settingConstructor;
         }
 
